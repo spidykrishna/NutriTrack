@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Meal - {{ meal_plan.name }} - FitMeal Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .add-meal-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .recipe-list {
+        max-height: 400px;
+        overflow-y: auto;
+        margin: 20px 0;
+    }
+
+    .recipe-option {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        margin-bottom: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+
+    .recipe-option:hover {
+        background: rgba(99, 102, 241, 0.2);
+    }
+
+    .recipe-option.selected {
+        background: rgba(99, 102, 241, 0.3);
+        border-color: var(--primary);
+    }
+
+    .recipe-info h4 {
+        margin-bottom: 5px;
+        color: var(--light);
+    }
+
+    .recipe-meta {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .recipe-nutrition {
+        text-align: right;
+    }
+
+    .recipe-nutrition .protein {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--success);
+    }
+
+    .search-box {
+        margin-bottom: 20px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Add Meal to Plan</h1>
+    <p>{{ meal_plan.name }} - <span id="selectedSlotDisplay"></span></p>
+</div>
+
+<div class="add-meal-container">
+    <div class="glass-card">
+        <div class="form-row">
+            <div class="search-box">
+                <input type="text" class="form-control" id="recipeSearch" placeholder="Search recipes..." onkeyup="filterRecipes()">
+            </div>
+            <div>
+                <select class="form-control" id="mealSlotSelect">
+                    {% for slot_value, slot_label in meal_slots %}
+                    <option value="{{ slot_value }}">{{ slot_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="recipe-list" id="recipeList">
+            {% for recipe in recipes %}
+            <div class="recipe-option" data-id="{{ recipe.id }}" onclick="selectRecipe({{ recipe.id }})">
+                <div class="recipe-info">
+                    <h4>{{ recipe.name }}</h4>
+                    <div class="recipe-meta">
+                        {{ recipe.get_meal_type_display }} • {{ recipe.total_time }} min • {{ recipe.servings }} servings
+                    </div>
+                </div>
+                <div class="recipe-nutrition">
+                    <div class="protein">{{ recipe.total_nutrition.protein|floatformat:1 }}g</div>
+                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">protein</div>
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align: center; padding: 40px;">
+                <i class="fas fa-utensils" style="font-size: 3rem; color: rgba(255,255,255,0.3); margin-bottom: 20px;"></i>
+                <p>No recipes available. Please add some recipes first.</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="form-group">
+            <label>Servings</label>
+            <input type="number" class="form-control" id="servingsInput" value="1" min="1" max="10">
+        </div>
+        
+        <div class="form-group">
+            <label>Notes (optional)</label>
+            <textarea class="form-control" id="notesInput" rows="2" placeholder="Any special notes..."></textarea>
+        </div>
+        
+        <button class="btn btn-primary" style="width: 100%;" onclick="addMealToPlan()">
+            <i class="fas fa-plus"></i>
+            Add Meal to Plan
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedRecipeId = null;
+    
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const date = urlParams.get('date') || new Date().toISOString().split('T')[0];
+    const slot = urlParams.get('slot') || 'breakfast';
+    
+    
+    document.getElementById('mealSlotSelect').value = slot;
+    document.getElementById('selectedSlotDisplay').textContent = date;
+
+    function selectRecipe(recipeId) {
+        selectedRecipeId = recipeId;
+        document.querySelectorAll('.recipe-option').forEach(el => {
+            el.classList.remove('selected');
+        });
+        document.querySelector(`.recipe-option[data-id="${recipeId}"]`).classList.add('selected');
+    }
+
+    function filterRecipes() {
+        const query = document.getElementById('recipeSearch').value.toLowerCase();
+        document.querySelectorAll('.recipe-option').forEach(el => {
+            const name = el.querySelector('h4').textContent.toLowerCase();
+            el.style.display = name.includes(query) ? 'flex' : 'none';
+        });
+    }
+
+    async function addMealToPlan() {
+        if (!selectedRecipeId) {
+            alert('Please select a recipe');
+            return;
+        }
+
+        const data = {
+            date: date,
+            meal_slot: document.getElementById('mealSlotSelect').value,
+            recipe_id: selectedRecipeId,
+            servings: parseInt(document.getElementById('servingsInput').value),
+            notes: document.getElementById('notesInput').value
+        };
+
+        try {
+            const response = await fetch('/meal-plans/{{ meal_plan.id }}/add-meal/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+
+            if (result.success) {
+                window.location.href = '/meal-plans/{{ meal_plan.id }}/';
+            } else {
+                alert('Error adding meal: ' + (result.error || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error adding meal. Please try again.');
+            console.error(error);
+        }
+    }
+</script>
+{% endblock %}

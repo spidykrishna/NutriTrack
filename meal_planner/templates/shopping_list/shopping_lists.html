@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}Shopping Lists - FitMeal Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .lists-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+    }
+
+    .lists-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 25px;
+    }
+
+    .list-card {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .list-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
+        background: linear-gradient(to bottom, var(--success), var(--accent));
+    }
+
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+
+    .list-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--light);
+    }
+
+    .list-date {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .list-stats {
+        display: flex;
+        gap: 20px;
+        margin: 15px 0;
+        padding: 15px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .list-stat {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .list-stat i {
+        color: var(--accent);
+    }
+
+    .list-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .list-actions .btn {
+        flex: 1;
+        justify-content: center;
+        padding: 10px;
+        font-size: 0.85rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 40px;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: rgba(255, 255, 255, 0.2);
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Your Shopping Lists</h1>
+    <p>Manage all your shopping lists in one place</p>
+</div>
+
+<div class="lists-header">
+    <div></div>
+    <a href="{% url 'meal_plan_list' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i>
+        Create from Meal Plan
+    </a>
+</div>
+
+<div class="lists-grid">
+    {% for list in shopping_lists %}
+    <div class="glass-card list-card">
+        <div class="list-header">
+            <div>
+                <div class="list-title">{{ list.name }}</div>
+                <div class="list-date">
+                    <i class="fas fa-calendar"></i>
+                    {{ list.created_at|date:"M d, Y" }}
+                </div>
+            </div>
+        </div>
+        
+        {% if list.meal_plan %}
+        <div style="margin-bottom: 15px; font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+            <i class="fas fa-link"></i> From: {{ list.meal_plan.name }}
+        </div>
+        {% endif %}
+        
+        <div class="list-stats">
+            <div class="list-stat">
+                <i class="fas fa-shopping-basket"></i>
+                <span>{{ list.items.count }} items</span>
+            </div>
+            <div class="list-stat">
+                <i class="fas fa-check-circle"></i>
+                <span>{{ list.items.filter.purchased.count|default:"0" }} purchased</span>
+            </div>
+        </div>
+        
+        <div class="list-actions">
+            <a href="{% url 'shopping_list_detail' list.id %}" class="btn btn-primary">
+                <i class="fas fa-eye"></i>
+                View
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="glass-card empty-state" style="grid-column: 1 / -1;">
+        <i class="fas fa-shopping-cart"></i>
+        <h3>No shopping lists yet</h3>
+        <p>Create a meal plan first, then generate a shopping list from it</p>
+        <a href="{% url 'meal_plan_list' %}" class="btn btn-primary" style="margin-top: 20px;">
+            <i class="fas fa-calendar"></i>
+            Go to Meal Plans
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

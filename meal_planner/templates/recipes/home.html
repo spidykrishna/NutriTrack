@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+
+{% block title %}FitMeal Planner - Your Fitness Nutrition Companion{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero {
+        text-align: center;
+        padding: 60px 20px;
+        position: relative;
+    }
+
+    .hero h1 {
+        font-size: 4rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        background: linear-gradient(135deg, #fff, #a5b4fc, #c084fc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: gradient 3s ease infinite;
+        background-size: 200% 200%;
+    }
+
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    .hero p {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.7);
+        max-width: 600px;
+        margin: 0 auto 40px;
+        line-height: 1.8;
+    }
+
+    .hero-buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .hero-buttons .btn {
+        padding: 16px 32px;
+        font-size: 1.1rem;
+    }
+
+    .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 30px;
+        margin: 60px 0;
+    }
+
+    .feature-card {
+        text-align: center;
+        padding: 40px 30px;
+    }
+
+    .feature-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+        font-size: 2rem;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(236, 72, 153, 0.3));
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .feature-card h3 {
+        font-size: 1.4rem;
+        margin-bottom: 12px;
+        color: var(--light);
+    }
+
+    .feature-card p {
+        color: rgba(255, 255, 255, 0.6);
+        line-height: 1.7;
+    }
+
+    .section-title {
+        text-align: center;
+        margin: 60px 0 40px;
+    }
+
+    .section-title h2 {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+        background: linear-gradient(135deg, var(--light), var(--accent));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .section-title p {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .recipe-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 30px;
+        margin-bottom: 60px;
+    }
+
+    .recipe-card {
+        overflow: hidden;
+        position: relative;
+    }
+
+    .recipe-image {
+        width: 100%;
+        height: 200px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(236, 72, 153, 0.3));
+        border-radius: 16px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .recipe-card h4 {
+        font-size: 1.2rem;
+        margin-bottom: 10px;
+        color: var(--light);
+    }
+
+    .recipe-meta {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+
+    .recipe-meta span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .recipe-tags {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .nutrition-preview {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .nutrition-item {
+        text-align: center;
+    }
+
+    .nutrition-item .value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--accent);
+    }
+
+    .nutrition-item .label {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+    }
+
+    .cta-section {
+        text-align: center;
+        padding: 80px 40px;
+        margin: 60px 0;
+        border-radius: 30px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(236, 72, 153, 0.2));
+    }
+
+    .cta-section h2 {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+    }
+
+    .cta-section p {
+        color: rgba(255, 255, 255, 0.7);
+        max-width: 500px;
+        margin: 0 auto 30px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <h1>FitMeal Planner</h1>
+    <p>Your ultimate companion for fitness nutrition. Discover high-protein recipes, create personalized meal plans, generate shopping lists, and track your nutrients - all in one place.</p>
+    <div class="hero-buttons">
+        <a href="{% url 'recipe_list' %}" class="btn btn-primary">
+            <i class="fas fa-search"></i>
+            Explore Recipes
+        </a>
+        <a href="{% url 'meal_plan_list' %}" class="btn btn-secondary">
+            <i class="fas fa-calendar-alt"></i>
+            Create Meal Plan
+        </a>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features">
+    <div class="glass-card feature-card">
+        <div class="feature-icon">
+            <i class="fas fa-utensils"></i>
+        </div>
+        <h3>Recipe Search</h3>
+        <p>Find recipes by meal type, protein content, difficulty level, and more. Perfect for gym enthusiasts looking for nutritious meals.</p>
+    </div>
+    <div class="glass-card feature-card">
+        <div class="feature-icon">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <h3>Meal Planning</h3>
+        <p>Create weekly meal plans with drag-and-drop simplicity. Organize your breakfasts, lunches, dinners, and snacks effortlessly.</p>
+    </div>
+    <div class="glass-card feature-card">
+        <div class="feature-icon">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <h3>Shopping Lists</h3>
+        <p>Automatically generate shopping lists from your meal plans. Never forget an ingredient again with our smart list builder.</p>
+    </div>
+    <div class="glass-card feature-card">
+        <div class="feature-icon">
+            <i class="fas fa-chart-pie"></i>
+        </div>
+        <h3>Nutrient Tracking</h3>
+        <p>Track your daily calorie, protein, carb, and fat intake. Set goals and monitor your progress towards your fitness targets.</p>
+    </div>
+    <div class="glass-card feature-card">
+        <div class="feature-icon">
+            <i class="fas fa-drumstick-bite"></i>
+        </div>
+        <h3>Protein Alternatives</h3>
+        <p>Discover alternative protein sources beyond paneer and lentils. Find substitutes that match your nutritional needs.</p>
+    </div>
+    <div class="glass-card feature-card">
+        <div class="feature-icon">
+            <i class="fas fa-exchange-alt"></i>
+        </div>
+        <h3>Ingredient Swaps</h3>
+        <p>Can't find an ingredient? Get smart suggestions for alternatives with automatic quantity conversion.</p>
+    </div>
+</section>
+
+<!-- Featured Recipes Section -->
+<div class="section-title">
+    <h2>Featured Recipes</h2>
+    <p>High-protein meals perfect for your fitness journey</p>
+</div>
+
+<div class="recipe-grid">
+    {% for recipe in featured_recipes %}
+    <div class="glass-card recipe-card">
+        <div class="recipe-image">
+            <i class="fas fa-utensils"></i>
+        </div>
+        <h4>{{ recipe.name }}</h4>
+        <div class="recipe-meta">
+            <span><i class="fas fa-clock"></i> {{ recipe.total_time }} min</span>
+            <span><i class="fas fa-signal"></i> {{ recipe.get_difficulty_display }}</span>
+            <span><i class="fas fa-fire"></i> {{ recipe.total_nutrition.calories|floatformat:0 }} cal</span>
+        </div>
+        <div class="recipe-tags">
+            <span class="tag tag-primary">{{ recipe.get_meal_type_display }}</span>
+            {% if recipe.total_nutrition.protein > 20 %}
+            <span class="tag tag-success">High Protein</span>
+            {% endif %}
+        </div>
+        <div class="nutrition-preview">
+            <div class="nutrition-item">
+                <div class="value">{{ recipe.total_nutrition.protein|floatformat:1 }}g</div>
+                <div class="label">Protein</div>
+            </div>
+            <div class="nutrition-item">
+                <div class="value">{{ recipe.total_nutrition.carbs|floatformat:1 }}g</div>
+                <div class="label">Carbs</div>
+            </div>
+            <div class="nutrition-item">
+                <div class="value">{{ recipe.total_nutrition.fats|floatformat:1 }}g</div>
+                <div class="label">Fats</div>
+            </div>
+            <div class="nutrition-item">
+                <div class="value">{{ recipe.total_nutrition.fiber|floatformat:1 }}g</div>
+                <div class="label">Fiber</div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="glass-card" style="text-align: center; padding: 40px;">
+        <i class="fas fa-info-circle" style="font-size: 3rem; color: rgba(255,255,255,0.3); margin-bottom: 20px;"></i>
+        <p>No recipes yet. Add some recipes to get started!</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- CTA Section -->
+<section class="cta-section glass">
+    <h2>Ready to Start Your Fitness Journey?</h2>
+    <p>Create your first meal plan today and take control of your nutrition with our intelligent meal planning system.</p>
+    <a href="{% url 'create_meal_plan' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i>
+        Create Your First Meal Plan
+    </a>
+</section>
+{% endblock %}

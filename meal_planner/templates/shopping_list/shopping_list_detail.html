@@ -1,0 +1,396 @@
+{% extends 'base.html' %}
+
+{% block title %}Shopping List - FitMeal Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .shopping-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .progress-overview {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .progress-ring {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        /* Fixed progress calculation for CSS */
+        background: conic-gradient(var(--success) calc(var(--progress) * 1%), rgba(255,255,255,0.1) 0);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .progress-ring::before {
+        content: '';
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--dark);
+    }
+
+    .progress-text {
+        position: absolute;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .category-section {
+        margin-bottom: 30px;
+    }
+
+    .category-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .category-title i {
+        color: var(--primary);
+    }
+
+    .category-title h3 {
+        font-size: 1.2rem;
+        color: var(--light);
+        margin: 0;
+    }
+
+    .items-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 12px;
+    }
+
+    .item-card {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px 20px;
+        transition: all 0.3s;
+    }
+
+    .item-card:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .item-card.purchased {
+        opacity: 0.5;
+    }
+
+    .item-card.purchased .item-name {
+        text-decoration: line-through;
+    }
+
+    .checkbox {
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--primary);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        flex-shrink: 0;
+    }
+
+    .checkbox.checked {
+        background: var(--success);
+        border-color: var(--success);
+    }
+
+    .checkbox i {
+        display: none;
+        color: white;
+        font-size: 0.8rem;
+    }
+
+    .checkbox.checked i {
+        display: block;
+    }
+
+    .item-info {
+        flex: 1;
+    }
+
+    .item-name {
+        font-weight: 500;
+        color: var(--light);
+        margin-bottom: 3px;
+    }
+
+    .item-amount {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .item-actions {
+        display: flex;
+        gap: 8px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .item-card:hover .item-actions {
+        opacity: 1;
+    }
+
+    .item-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        border: none;
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .item-btn.danger:hover {
+        background: var(--danger);
+        color: white;
+    }
+
+    .add-item-form {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .add-item-form input[name="amount"] {
+        width: 100px;
+        flex: none;
+    }
+
+    .empty-category {
+        text-align: center;
+        padding: 50px 30px;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .action-bar {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ shopping_list.name }}</h1>
+    <p>Generated on {{ shopping_list.created_at|date:"F d, Y" }}</p>
+</div>
+
+<div class="shopping-header">
+    <div class="progress-overview">
+        <div class="progress-ring" style="--progress: {% if total_count > 0 %}{% widthratio purchased_count total_count 100 %}{% else %}0{% endif %}">
+            <span class="progress-text">{% if total_count > 0 %}{% widthratio purchased_count total_count 100 %}{% else %}0{% endif %}%</span>
+        </div>
+        <div>
+            <div style="font-size: 1.2rem; font-weight: 600;">{{ purchased_count }} / {{ total_count }} items</div>
+            <div style="color: rgba(255,255,255,0.5);">purchased</div>
+        </div>
+    </div>
+    {% if shopping_list.meal_plan %}
+    <div>
+        <span class="tag tag-info">From: {{ shopping_list.meal_plan.name }}</span>
+    </div>
+    {% endif %}
+</div>
+
+<div class="glass-card" style="margin-bottom: 30px;">
+    <h3 style="margin-bottom: 15px; font-size: 1.1rem;"><i class="fas fa-plus" style="color: var(--primary); margin-right: 10px;"></i>Add Custom Item</h3>
+    <div class="add-item-form">
+        <input type="text" class="form-control" id="newItemName" placeholder="Item name (e.g. Paneer)">
+        <input type="number" class="form-control" id="newItemAmount" placeholder="Qty" value="1" style="width: 80px;">
+        <select class="form-control" id="newItemUnit" style="width: 120px;">
+            <option value="piece">piece</option>
+            <option value="g">grams</option>
+            <option value="kg">kg</option>
+            <option value="ml">ml</option>
+            <option value="l">liters</option>
+            <option value="cup">cups</option>
+        </select>
+        <button class="btn btn-primary" onclick="addCustomItem()">
+            <i class="fas fa-plus"></i> Add
+        </button>
+    </div>
+</div>
+
+<div id="shopping-list-container">
+    {% for category, items in items_by_category.items %}
+    <div class="category-section">
+        <div class="category-title">
+            <i class="fas fa-folder"></i>
+            <h3>{{ category }}</h3>
+            <span style="margin-left: auto; color: rgba(255,255,255,0.5); font-size: 0.9rem;">{{ items|length }} items</span>
+        </div>
+        <div class="items-grid">
+            {% for item in items %}
+            <div class="glass-card item-card {% if item.purchased %}purchased{% endif %}" data-id="{{ item.id }}">
+                <div class="checkbox {% if item.purchased %}checked{% endif %}" onclick="toggleItem({{ item.id }})">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="item-info">
+                    <div class="item-name">{{ item.ingredient.name }}</div>
+                    <div class="item-amount">{{ item.amount }} {{ item.unit }}</div>
+                </div>
+                <div class="item-actions">
+                    <button class="item-btn" onclick="editAmount({{ item.id }})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="item-btn danger" onclick="removeItem({{ item.id }})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="glass-card empty-category">
+        <i class="fas fa-shopping-basket" style="font-size: 3rem; margin-bottom: 15px; display: block;"></i>
+        <p>Your shopping list is empty</p>
+        <p style="font-size: 0.9rem;">Generate a list from a meal plan or add items manually</p>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="action-bar">
+    <button class="btn btn-secondary" onclick="clearPurchased()">
+        <i class="fas fa-broom"></i> Clear Purchased
+    </button>
+    <button class="btn btn-danger" onclick="clearAll()">
+        <i class="fas fa-trash-alt"></i> Clear All
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    
+    async function fetchJSON(url, options = {}) {
+        options.headers = {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            ...options.headers,
+        };
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+    }
+
+   async function addCustomItem() {
+    const name = document.getElementById('newItemName').value;
+    const amount = document.getElementById('newItemAmount').value;
+    const unit = document.getElementById('newItemUnit').value;
+
+    if (!name) {
+        alert('Please enter an item name');
+        return;
+    }
+
+    const response = await fetch(`/shopping-list/{{ shopping_list.id }}/add-item/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken') 
+        },
+        body: JSON.stringify({ name, amount: parseFloat(amount), unit })
+    });
+
+    const result = await response.json();
+    if (result.success) {
+        window.location.reload(); 
+    }
+}
+
+    async function toggleItem(itemId) {
+        try {
+            const response = await fetchJSON(`/shopping-items/${itemId}/toggle/`, {
+                method: 'POST'
+            });
+            if (response.success) window.location.reload();
+        } catch (error) {
+            alert('Error updating item.');
+        }
+    }
+
+    async function removeItem(itemId) {
+        if (!confirm('Remove this item?')) return;
+        try {
+            const response = await fetchJSON(`/shopping-items/${itemId}/remove/`, {
+                method: 'POST'
+            });
+            if (response.success) window.location.reload();
+        } catch (error) {
+            alert('Error removing item.');
+        }
+    }
+
+    async function editAmount(itemId) {
+        const newAmount = prompt('Enter new amount:');
+        if (!newAmount) return;
+        try {
+            const response = await fetchJSON(`/shopping-items/${itemId}/update/`, {
+                method: 'POST',
+                body: JSON.stringify({ amount: parseFloat(newAmount) })
+            });
+            if (response.success) window.location.reload();
+        } catch (error) {
+            alert('Error updating amount.');
+        }
+    }
+
+    async function clearPurchased() {
+        if (!confirm('Remove all purchased items?')) return;
+        try {
+            const response = await fetchJSON(`/shopping-list/{{ shopping_list.id }}/clear-purchased/`, {
+                method: 'POST'
+            });
+            if (response.success) window.location.reload();
+        } catch (error) {
+            alert('Error clearing items.');
+        }
+    }
+
+    function clearAll() {
+        alert('This would require a "Clear All" endpoint in your views.py');
+    }
+</script>
+{% endblock %}

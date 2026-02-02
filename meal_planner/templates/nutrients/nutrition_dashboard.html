@@ -1,0 +1,440 @@
+{% extends 'base.html' %}
+
+{% block title %}Nutrition Dashboard - FitMeal Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+    }
+
+    .stats-overview {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card-large {
+        text-align: center;
+        padding: 30px 20px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card-large::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+
+    .stat-card-large.calories::before { background: linear-gradient(90deg, #f97316, #fb923c); }
+    .stat-card-large.protein::before { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    .stat-card-large.carbs::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .stat-card-large.fats::before { background: linear-gradient(90deg, #eab308, #facc15); }
+
+    .stat-card-large .icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+        font-size: 1.5rem;
+    }
+
+    .stat-card-large.calories .icon { background: linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(251, 146, 60, 0.3)); color: #fdba74; }
+    .stat-card-large.protein .icon { background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(74, 222, 128, 0.3)); color: #86efac; }
+    .stat-card-large.carbs .icon { background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(96, 165, 250, 0.3)); color: #93c5fd; }
+    .stat-card-large.fats .icon { background: linear-gradient(135deg, rgba(234, 179, 8, 0.3), rgba(250, 204, 21, 0.3)); color: #fde047; }
+
+    .stat-card-large .consumed {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--light);
+    }
+
+    .stat-card-large .goal {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 5px;
+    }
+
+    .progress-section {
+        margin-top: 30px;
+    }
+
+    .progress-section h3 {
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .progress-section h3 i {
+        color: var(--primary);
+    }
+
+    .macro-chart {
+        display: flex;
+        height: 30px;
+        border-radius: 15px;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    .macro-segment {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .macro-segment.protein { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    .macro-segment.carbs { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .macro-segment.fats { background: linear-gradient(90deg, #eab308, #facc15); }
+
+    .macro-legend {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+    }
+
+    .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+    }
+
+    .weekly-chart {
+        height: 300px;
+        position: relative;
+    }
+
+    .goals-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .form-actions {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .quick-log {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr) auto;
+        gap: 10px;
+        align-items: end;
+    }
+
+    @media (max-width: 1024px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+        .stats-overview {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stats-overview {
+            grid-template-columns: 1fr;
+        }
+        .goals-form {
+            grid-template-columns: 1fr;
+        }
+        .quick-log {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Nutrition Dashboard</h1>
+    <p>Track your daily intake and monitor your progress towards fitness goals</p>
+</div>
+
+<!-- Today's Stats Overview -->
+<div class="stats-overview">
+    <div class="glass-card stat-card-large calories">
+        <div class="icon"><i class="fas fa-fire"></i></div>
+        <div class="consumed">{{ today_log.calories_consumed|floatformat:0 }}</div>
+        <div class="goal">/ {{ goals.daily_calories }} cal</div>
+    </div>
+    <div class="glass-card stat-card-large protein">
+        <div class="icon"><i class="fas fa-drumstick-bite"></i></div>
+        <div class="consumed">{{ today_log.protein_consumed|floatformat:1 }}g</div>
+        <div class="goal">/ {{ goals.daily_protein }}g protein</div>
+    </div>
+    <div class="glass-card stat-card-large carbs">
+        <div class="icon"><i class="fas fa-bread-slice"></i></div>
+        <div class="consumed">{{ today_log.carbs_consumed|floatformat:1 }}g</div>
+        <div class="goal">/ {{ goals.daily_carbs }}g carbs</div>
+    </div>
+    <div class="glass-card stat-card-large fats">
+        <div class="icon"><i class="fas fa-oil-can"></i></div>
+        <div class="consumed">{{ today_log.fats_consumed|floatformat:1 }}g</div>
+        <div class="goal">/ {{ goals.daily_fats }}g fats</div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Progress Section -->
+    <div class="glass-card progress-section">
+        <h3><i class="fas fa-chart-pie"></i> Today's Progress</h3>
+        
+        <!-- Progress Bars -->
+        <div class="progress-container">
+            <div class="progress-header">
+                <span>Calories</span>
+                <span>{{ comparison.calories.percentage|floatformat:1 }}%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill calories" style="width: {{ comparison.calories.percentage|floatformat:0 }}%"></div>
+            </div>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-header">
+                <span>Protein</span>
+                <span>{{ comparison.protein.percentage|floatformat:1 }}%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill protein" style="width: {{ comparison.protein.percentage|floatformat:0 }}%"></div>
+            </div>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-header">
+                <span>Carbohydrates</span>
+                <span>{{ comparison.carbs.percentage|floatformat:1 }}%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill carbs" style="width: {{ comparison.carbs.percentage|floatformat:0 }}%"></div>
+            </div>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-header">
+                <span>Fats</span>
+                <span>{{ comparison.fats.percentage|floatformat:1 }}%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill fats" style="width: {{ comparison.fats.percentage|floatformat:0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Macro Breakdown -->
+        <h3 style="margin-top: 30px;"><i class="fas fa-percentage"></i> Macro Breakdown</h3>
+        <div class="macro-chart">
+            <div class="macro-segment protein" style="width: {{ today_log.protein_percentage|floatformat:0 }}%">
+                {{ today_log.protein_percentage|floatformat:0 }}%
+            </div>
+            <div class="macro-segment carbs" style="width: {{ today_log.carbs_percentage|floatformat:0 }}%">
+                {{ today_log.carbs_percentage|floatformat:0 }}%
+            </div>
+            <div class="macro-segment fats" style="width: {{ today_log.fats_percentage|floatformat:0 }}%">
+                {{ today_log.fats_percentage|floatformat:0 }}%
+            </div>
+        </div>
+        <div class="macro-legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #22c55e, #4ade80);"></div>
+                <span>Protein</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #3b82f6, #60a5fa);"></div>
+                <span>Carbs</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #eab308, #facc15);"></div>
+                <span>Fats</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Goals & Quick Log -->
+    <div>
+        <!-- Quick Log -->
+        <div class="glass-card" style="margin-bottom: 30px;">
+            <h3 style="margin-bottom: 20px;"><i class="fas fa-plus-circle" style="color: var(--primary); margin-right: 10px;"></i>Quick Log</h3>
+            <div class="quick-log">
+                <div class="form-group">
+                    <label>Calories</label>
+                    <input type="number" class="form-control" id="logCalories" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Protein (g)</label>
+                    <input type="number" class="form-control" id="logProtein" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Carbs (g)</label>
+                    <input type="number" class="form-control" id="logCarbs" placeholder="0">
+                </div>
+                <button class="btn btn-primary" onclick="quickLog()">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Set Goals -->
+        <div class="glass-card">
+            <h3 style="margin-bottom: 20px;"><i class="fas fa-bullseye" style="color: var(--primary); margin-right: 10px;"></i>Daily Goals</h3>
+            <form class="goals-form" id="goalsForm">
+                <div class="form-group">
+                    <label>Daily Calories</label>
+                    <input type="number" class="form-control" id="goalCalories" value="{{ goals.daily_calories }}">
+                </div>
+                <div class="form-group">
+                    <label>Protein (g)</label>
+                    <input type="number" class="form-control" id="goalProtein" value="{{ goals.daily_protein }}">
+                </div>
+                <div class="form-group">
+                    <label>Carbs (g)</label>
+                    <input type="number" class="form-control" id="goalCarbs" value="{{ goals.daily_carbs }}">
+                </div>
+                <div class="form-group">
+                    <label>Fats (g)</label>
+                    <input type="number" class="form-control" id="goalFats" value="{{ goals.daily_fats }}">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Save Goals
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Weekly Chart -->
+<div class="glass-card" style="margin-top: 30px;">
+    <h3 style="margin-bottom: 20px;"><i class="fas fa-chart-line" style="color: var(--primary); margin-right: 10px;"></i>Weekly Overview</h3>
+    <div class="weekly-chart" id="weeklyChart">
+        <!-- Chart will be rendered here -->
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Weekly data
+    const weeklyData = [
+        {% for log in weekly_logs %}
+        {
+            date: '{{ log.date|date:"D" }}',
+            calories: {{ log.calories_consumed }},
+            protein: {{ log.protein_consumed }},
+            carbs: {{ log.carbs_consumed }},
+            fats: {{ log.fats_consumed }}
+        },
+        {% endfor %}
+    ];
+
+    // Render simple bar chart
+    function renderWeeklyChart() {
+        const chart = document.getElementById('weeklyChart');
+        if (weeklyData.length === 0) {
+            chart.innerHTML = '<p style="text-align: center; color: rgba(255,255,255,0.5); padding-top: 100px;">No data available</p>';
+            return;
+        }
+
+        const maxCalories = Math.max(...weeklyData.map(d => d.calories), {{ goals.daily_calories }});
+        
+        chart.innerHTML = `
+            <div style="display: flex; align-items: flex-end; justify-content: space-around; height: 100%; padding: 20px;">
+                ${weeklyData.map(d => `
+                    <div style="text-align: center; flex: 1;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">${d.calories}</div>
+                            <div style="width: 40px; height: ${(d.calories / maxCalories * 200)}px; background: linear-gradient(to top, var(--primary), var(--accent)); border-radius: 8px 8px 0 0; transition: all 0.3s;"></div>
+                            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">${d.date}</div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    renderWeeklyChart();
+
+    // Quick log
+    async function quickLog() {
+        const data = {
+            calories: parseFloat(document.getElementById('logCalories').value) || 0,
+            protein: parseFloat(document.getElementById('logProtein').value) || 0,
+            carbs: parseFloat(document.getElementById('logCarbs').value) || 0,
+            fats: 0,
+            fiber: 0
+        };
+
+        try {
+            const response = await fetchJSON('/nutrition/log/', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            if (response.success) {
+                // Clear inputs
+                document.getElementById('logCalories').value = '';
+                document.getElementById('logProtein').value = '';
+                document.getElementById('logCarbs').value = '';
+                
+                // Reload page to show updated data
+                window.location.reload();
+            }
+        } catch (error) {
+            alert('Error logging nutrition. Please try again.');
+        }
+    }
+
+    // Update goals
+    document.getElementById('goalsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const data = {
+            daily_calories: parseFloat(document.getElementById('goalCalories').value),
+            daily_protein: parseFloat(document.getElementById('goalProtein').value),
+            daily_carbs: parseFloat(document.getElementById('goalCarbs').value),
+            daily_fats: parseFloat(document.getElementById('goalFats').value),
+        };
+
+        try {
+            const response = await fetchJSON('/nutrition/goals/', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            if (response.success) {
+                alert('Goals updated successfully!');
+                window.location.reload();
+            }
+        } catch (error) {
+            alert('Error updating goals. Please try again.');
+        }
+    });
+</script>
+{% endblock %}

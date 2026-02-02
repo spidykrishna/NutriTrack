@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+
+{% block title %}Protein Sources - FitMeal Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .protein-intro {
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto 50px;
+    }
+
+    .protein-intro p {
+        color: rgba(255, 255, 255, 0.7);
+        line-height: 1.8;
+    }
+
+    .protein-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 25px;
+    }
+
+    .protein-card {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .protein-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+    }
+
+    .protein-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .protein-name {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--light);
+    }
+
+    .protein-category {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .protein-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(74, 222, 128, 0.3));
+        color: #86efac;
+    }
+
+    .protein-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .stat {
+        text-align: center;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--accent);
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+    }
+
+    .alternatives-section {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 15px;
+    }
+
+    .alternatives-title {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 10px;
+    }
+
+    .alternative-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .alternative-tag {
+        padding: 4px 10px;
+        background: rgba(99, 102, 241, 0.2);
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        border-radius: 15px;
+        font-size: 0.75rem;
+        color: #a5b4fc;
+    }
+
+    .category-filters {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 40px;
+        flex-wrap: wrap;
+    }
+
+    .category-btn {
+        padding: 10px 20px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--glass-border);
+        border-radius: 25px;
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.9rem;
+    }
+
+    .category-btn:hover,
+    .category-btn.active {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        border-color: transparent;
+        color: white;
+    }
+
+    .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+        padding: 15px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .comparison-table th {
+        color: rgba(255, 255, 255, 0.6);
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+    }
+
+    .comparison-table td {
+        color: var(--light);
+    }
+
+    .comparison-table tr:hover td {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .protein-bar {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        width: 100px;
+    }
+
+    .protein-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #22c55e, #4ade80);
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Protein Sources</h1>
+    <p>Discover high-quality protein alternatives for your fitness journey</p>
+</div>
+
+<div class="protein-intro">
+    <p>Whether you're looking for alternatives to paneer, lentils, or chicken, we've got you covered. Explore our comprehensive database of protein sources with detailed nutritional information and smart substitution suggestions.</p>
+</div>
+
+<!-- Category Filters -->
+<div class="category-filters">
+    <button class="category-btn active" onclick="filterByCategory('all')">All Sources</button>
+    <button class="category-btn" onclick="filterByCategory('vegetarian')">Vegetarian</button>
+    <button class="category-btn" onclick="filterByCategory('vegan')">Vegan</button>
+    <button class="category-btn" onclick="filterByCategory('dairy')">Dairy</button>
+    <button class="category-btn" onclick="filterByCategory('meat')">Meat & Fish</button>
+    <button class="category-btn" onclick="filterByCategory('plant')">Plant-Based</button>
+</div>
+
+<!-- Protein Grid -->
+<div class="protein-grid" id="proteinGrid">
+    {% for source in protein_sources %}
+    <div class="glass-card protein-card" data-category="{{ source.category|lower }}">
+        <div class="protein-header">
+            <div>
+                <div class="protein-name">{{ source.name }}</div>
+                <div class="protein-category">{{ source.category }}</div>
+            </div>
+            {% if source.protein > 20 %}
+            <span class="protein-badge">High Protein</span>
+            {% endif %}
+        </div>
+        
+        <div class="protein-stats">
+            <div class="stat">
+                <div class="stat-value">{{ source.protein }}g</div>
+                <div class="stat-label">Protein / 100g</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">{{ source.calories }}</div>
+                <div class="stat-label">Calories / 100g</div>
+            </div>
+        </div>
+        
+        {% if source.alternatives.exists %}
+        <div class="alternatives-section">
+            <div class="alternatives-title">Alternatives:</div>
+            <div class="alternative-tags">
+                {% for alt in source.alternatives.all|slice:":4" %}
+                <span class="alternative-tag">{{ alt.name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="glass-card" style="text-align: center; padding: 60px; grid-column: 1 / -1;">
+        <i class="fas fa-drumstick-bite" style="font-size: 3rem; color: rgba(255,255,255,0.3); margin-bottom: 20px;"></i>
+        <p>No protein sources found. Add some ingredients to get started!</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Comparison Table -->
+<div class="glass-card" style="margin-top: 50px;">
+    <h3 style="margin-bottom: 20px;"><i class="fas fa-table" style="color: var(--primary); margin-right: 10px;"></i>Quick Comparison</h3>
+    <div style="overflow-x: auto;">
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Source</th>
+                    <th>Category</th>
+                    <th>Protein (g/100g)</th>
+                    <th>Calories</th>
+                    <th>Protein Quality</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for source in protein_sources|slice:":10" %}
+                <tr>
+                    <td><strong>{{ source.name }}</strong></td>
+                    <td>{{ source.category }}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="protein-bar">
+                                <div class="protein-fill" style="width: {% widthratio source.protein 30 100 %}%"></div>
+                            </div>
+                            <span>{{ source.protein }}g</span>
+                        </div>
+                    </td>
+                    <td>{{ source.calories }}</td>
+                    <td>
+                        {% if source.protein_quality_score > 0.9 %}
+                        <span class="tag tag-success">Excellent</span>
+                        {% elif source.protein_quality_score > 0.7 %}
+                        <span class="tag tag-info">Good</span>
+                        {% else %}
+                        <span class="tag tag-warning">Fair</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function filterByCategory(category) {
+        // Update active button
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // Filter cards
+        const cards = document.querySelectorAll('.protein-card');
+        cards.forEach(card => {
+            if (category === 'all' || card.dataset.category.includes(category)) {
+                card.style.display = 'block';
+                card.classList.add('animate-fade-in');
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,436 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}{{ meal_plan.name }} - FitMeal Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .plan-header-detail {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .plan-info h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+
+    .plan-info p {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .plan-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .nutrition-summary {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .summary-card {
+        text-align: center;
+        padding: 20px 15px;
+    }
+
+    .summary-card .value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .summary-card.calories .value { color: #f97316; }
+    .summary-card.protein .value { color: #22c55e; }
+    .summary-card.carbs .value { color: #3b82f6; }
+    .summary-card.fats .value { color: #eab308; }
+    .summary-card.fiber .value { color: #a855f7; }
+
+    .summary-card .label {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        margin-top: 5px;
+    }
+
+    .calendar {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .calendar-day {
+        min-height: 200px;
+        padding: 15px;
+    }
+
+    .day-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .day-name {
+        font-weight: 600;
+        color: var(--light);
+    }
+
+    .day-date {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .day-meals {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .meal-slot {
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+    }
+
+    .meal-slot:hover {
+        background: rgba(99, 102, 241, 0.2);
+    }
+
+    .meal-slot.empty {
+        border: 2px dashed rgba(255, 255, 255, 0.1);
+        background: transparent;
+        color: rgba(255, 255, 255, 0.3);
+        text-align: center;
+    }
+
+    .meal-slot.empty:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    .meal-slot .meal-type {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+    }
+
+    .meal-slot .meal-name {
+        font-weight: 500;
+        color: var(--light);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .meal-slot .meal-nutrition {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .meal-slot .remove-meal {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: rgba(239, 68, 68, 0.8);
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+    }
+
+    .meal-slot:hover .remove-meal {
+        display: flex;
+    }
+
+    .add-meal-modal .recipe-list {
+        max-height: 300px;
+        overflow-y: auto;
+        margin: 20px 0;
+    }
+
+    .recipe-option {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        margin-bottom: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .recipe-option:hover {
+        background: rgba(99, 102, 241, 0.2);
+    }
+
+    .recipe-option.selected {
+        background: rgba(99, 102, 241, 0.3);
+        border: 1px solid var(--primary);
+    }
+
+    @media (max-width: 1024px) {
+        .calendar {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .calendar {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .nutrition-summary {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .calendar {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="plan-header-detail">
+    <div class="plan-info">
+        <h1>{{ meal_plan.name }}</h1>
+        <p>
+            <i class="fas fa-calendar"></i>
+            {{ meal_plan.start_date|date:"F d, Y" }} - {{ meal_plan.end_date|date:"F d, Y" }}
+            {% if meal_plan.description %}
+            <br><span style="color: rgba(255,255,255,0.5);">{{ meal_plan.description }}</span>
+            {% endif %}
+        </p>
+    </div>
+    <div class="plan-actions">
+        <a href="{% url 'generate_shopping_list' meal_plan.id %}" class="btn btn-primary">
+            <i class="fas fa-shopping-cart"></i>
+            Shopping List
+        </a>
+        <a href="{% url 'analyze_meal_plan_nutrition' meal_plan.id %}" class="btn btn-secondary" target="_blank">
+            <i class="fas fa-chart-line"></i>
+            Analysis
+        </a>
+    </div>
+</div>
+
+
+<div class="nutrition-summary">
+    <div class="glass-card summary-card calories">
+        <div class="value">{{ total_nutrition.calories|floatformat:0 }}</div>
+        <div class="label">Total Calories</div>
+    </div>
+    <div class="glass-card summary-card protein">
+        <div class="value">{{ total_nutrition.protein|floatformat:0 }}g</div>
+        <div class="label">Total Protein</div>
+    </div>
+    <div class="glass-card summary-card carbs">
+        <div class="value">{{ total_nutrition.carbs|floatformat:0 }}g</div>
+        <div class="label">Total Carbs</div>
+    </div>
+    <div class="glass-card summary-card fats">
+        <div class="value">{{ total_nutrition.fats|floatformat:0 }}g</div>
+        <div class="label">Total Fats</div>
+    </div>
+    <div class="glass-card summary-card fiber">
+        <div class="value">{{ total_nutrition.fiber|floatformat:0 }}g</div>
+        <div class="label">Total Fiber</div>
+    </div>
+</div>
+
+
+<div class="calendar">
+    {% for date_str, meals in meals_by_date.items %}
+    <div class="glass-card calendar-day">
+        <div class="day-header">
+            <span class="day-name">{{ date_str|parse_date|date:"l" }}</span>
+            <span class="day-date">{{ date_str|parse_date|date:"M d" }}</span>
+        </div>
+        <div class="day-meals">
+            {% for slot_value, slot_label in meal_slots %}
+                {% if meals|get_item:slot_value %}
+                {% with meal=meals|get_item:slot_value %}
+                <div class="meal-slot" onclick="showMealDetails({{ meal.id }})">
+                    <button class="remove-meal" onclick="event.stopPropagation(); removeMeal({{ meal.id }})">&times;</button>
+                    <div class="meal-type">{{ slot_label }}</div>
+                    <div class="meal-name">{{ meal.recipe.name }}</div>
+                    <div class="meal-nutrition">{{ meal.nutrition.calories|floatformat:0 }} cal • {{ meal.nutrition.protein|floatformat:1 }}g protein</div>
+                </div>
+                {% endwith %}
+                {% else %}
+                <div class="meal-slot empty" onclick="openAddMealModal('{{ date_str }}', '{{ slot_value }}')">
+                    <i class="fas fa-plus"></i> {{ slot_label }}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="glass-card" style="grid-column: 1 / -1; text-align: center; padding: 60px;">
+        <i class="fas fa-calendar-day" style="font-size: 3rem; color: rgba(255,255,255,0.3); margin-bottom: 20px;"></i>
+        <p>No days in this meal plan yet.</p>
+    </div>
+    {% endfor %}
+</div>
+
+
+<div class="modal-overlay" id="addMealModal">
+    <div class="modal-content add-meal-modal">
+        <div class="modal-header">
+            <h2>Add Meal - <span id="selectedSlot"></span></h2>
+            <button class="modal-close" onclick="closeAddMealModal()">&times;</button>
+        </div>
+        <div class="form-group">
+            <input type="text" class="form-control" id="recipeSearch" placeholder="Search recipes..." onkeyup="filterRecipes()">
+        </div>
+        <div class="recipe-list" id="recipeList">
+            
+        </div>
+        <div class="form-group">
+            <label>Servings</label>
+            <input type="number" class="form-control" id="servingsInput" value="1" min="1">
+        </div>
+        <button class="btn btn-primary" style="width: 100%;" onclick="addMealToPlan()">
+            <i class="fas fa-plus"></i>
+            Add Meal
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedDate = '';
+    let selectedSlot = '';
+    let selectedRecipeId = null;
+    let recipes = [];
+
+    
+    fetch('/recipes/search/')
+        .then(response => response.json())
+        .then(data => {
+            recipes = data.recipes;
+            renderRecipeList(recipes);
+        });
+
+    function renderRecipeList(recipeList) {
+        const container = document.getElementById('recipeList');
+        container.innerHTML = recipeList.map(r => `
+            <div class="recipe-option" data-id="${r.id}" onclick="selectRecipe(${r.id})">
+                <div>
+                    <strong>${r.name}</strong>
+                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
+                        ${r.meal_type} • ${r.prep_time + r.cook_time} min • ${r.protein.toFixed(1)}g protein
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function filterRecipes() {
+        const query = document.getElementById('recipeSearch').value.toLowerCase();
+        const filtered = recipes.filter(r => r.name.toLowerCase().includes(query));
+        renderRecipeList(filtered);
+    }
+
+    function selectRecipe(recipeId) {
+        selectedRecipeId = recipeId;
+        document.querySelectorAll('.recipe-option').forEach(el => {
+            el.classList.remove('selected');
+        });
+        document.querySelector(`.recipe-option[data-id="${recipeId}"]`).classList.add('selected');
+    }
+
+    function openAddMealModal(date, slot) {
+        selectedDate = date;
+        selectedSlot = slot;
+        document.getElementById('selectedSlot').textContent = slot.replace('_', ' ').toUpperCase();
+        document.getElementById('addMealModal').classList.add('active');
+    }
+
+    function closeAddMealModal() {
+        document.getElementById('addMealModal').classList.remove('active');
+        selectedRecipeId = null;
+        document.querySelectorAll('.recipe-option').forEach(el => {
+            el.classList.remove('selected');
+        });
+    }
+
+    async function addMealToPlan() {
+        if (!selectedRecipeId) {
+            alert('Please select a recipe');
+            return;
+        }
+
+        const data = {
+            date: selectedDate,
+            meal_slot: selectedSlot,
+            recipe_id: selectedRecipeId,
+            servings: parseInt(document.getElementById('servingsInput').value),
+            notes: ''
+        };
+
+        try {
+            const response = await fetchJSON('/meal-plans/{{ meal_plan.id }}/add-meal/', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            if (response.success) {
+                window.location.reload();
+            }
+        } catch (error) {
+            alert('Error adding meal. Please try again.');
+        }
+    }
+
+    async function removeMeal(mealId) {
+        if (!confirm('Remove this meal from the plan?')) return;
+
+        try {
+            const response = await fetchJSON(`/meal-plans/meals/${mealId}/remove/`, {
+                method: 'POST'
+            });
+
+            if (response.success) {
+                window.location.reload();
+            }
+        } catch (error) {
+            alert('Error removing meal. Please try again.');
+        }
+    }
+
+    function showMealDetails(mealId) {
+        
+        console.log('Show details for meal', mealId);
+    }
+
+    
+    document.getElementById('addMealModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAddMealModal();
+        }
+    });
+</script>
+{% endblock %}

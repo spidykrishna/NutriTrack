@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+
+{% block title %}Recipes - FitMeal Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filters {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .filters select {
+        min-width: 150px;
+    }
+
+    .recipe-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 25px;
+    }
+
+    .recipe-card {
+        overflow: hidden;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .recipe-card:hover {
+        transform: translateY(-8px);
+    }
+
+    .recipe-image {
+        width: 100%;
+        height: 180px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(236, 72, 153, 0.3));
+        border-radius: 16px;
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        color: rgba(255, 255, 255, 0.5);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .recipe-image::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .recipe-card:hover .recipe-image::after {
+        opacity: 1;
+    }
+
+    .recipe-card h4 {
+        font-size: 1.2rem;
+        margin-bottom: 10px;
+        color: var(--light);
+    }
+
+    .recipe-card p {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 15px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .recipe-meta {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+
+    .recipe-meta span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .recipe-tags {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+    }
+
+    .nutrition-bar {
+        display: flex;
+        gap: 10px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .nutrition-item {
+        flex: 1;
+        text-align: center;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+    }
+
+    .nutrition-item .value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--accent);
+    }
+
+    .nutrition-item .label {
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 40px;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: rgba(255, 255, 255, 0.2);
+        margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+
+    .empty-state p {
+        color: rgba(255, 255, 255, 0.5);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Recipe Collection</h1>
+    <p>Discover nutritious recipes tailored for your fitness goals</p>
+</div>
+
+<!-- Search and Filters -->
+<div class="glass-card" style="margin-bottom: 30px;">
+    <div class="search-bar">
+        <div class="search-input">
+            <i class="fas fa-search"></i>
+            <input type="text" class="form-control" id="searchInput" placeholder="Search recipes by name, ingredients, or tags..." value="{{ request.GET.q }}">
+        </div>
+        <button class="btn btn-primary" onclick="applyFilters()">
+            <i class="fas fa-filter"></i>
+            Search
+        </button>
+    </div>
+    <div class="filters">
+        <select class="form-control" id="mealTypeFilter" onchange="applyFilters()">
+            <option value="">All Meal Types</option>
+            {% for value, label in meal_types %}
+            <option value="{{ value }}" {% if request.GET.meal_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <select class="form-control" id="difficultyFilter" onchange="applyFilters()">
+            <option value="">All Difficulties</option>
+            {% for value, label in difficulties %}
+            <option value="{{ value }}" {% if request.GET.difficulty == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <select class="form-control" id="categoryFilter" onchange="applyFilters()">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if request.GET.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+        </select>
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="proteinFilter" {% if request.GET.protein_source %}checked{% endif %} onchange="applyFilters()">
+            <span>High Protein Only</span>
+        </label>
+    </div>
+</div>
+
+<!-- Recipe Grid -->
+<div class="recipe-grid" id="recipeGrid">
+    {% for recipe in recipes %}
+    <a href="{% url 'recipe_detail' recipe.id %}" class="glass-card recipe-card">
+        <div class="recipe-image">
+            <i class="fas fa-utensils"></i>
+        </div>
+        <h4>{{ recipe.name }}</h4>
+        <p>{{ recipe.description|truncatewords:20 }}</p>
+        <div class="recipe-meta">
+            <span><i class="fas fa-clock"></i> {{ recipe.total_time }} min</span>
+            <span><i class="fas fa-signal"></i> {{ recipe.get_difficulty_display }}</span>
+            <span><i class="fas fa-user-friends"></i> {{ recipe.servings }} servings</span>
+        </div>
+        <div class="recipe-tags">
+            <span class="tag tag-primary">{{ recipe.get_meal_type_display }}</span>
+            {% if recipe.total_nutrition.protein > 25 %}
+            <span class="tag tag-success">High Protein</span>
+            {% elif recipe.total_nutrition.protein > 15 %}
+            <span class="tag tag-info">Good Protein</span>
+            {% endif %}
+        </div>
+        <div class="nutrition-bar">
+            <div class="nutrition-item">
+                <div class="value">{{ recipe.total_nutrition.calories|floatformat:0 }}</div>
+                <div class="label">Cal</div>
+            </div>
+            <div class="nutrition-item">
+                <div class="value">{{ recipe.total_nutrition.protein|floatformat:1 }}g</div>
+                <div class="label">Protein</div>
+            </div>
+            <div class="nutrition-item">
+                <div class="value">{{ recipe.total_nutrition.carbs|floatformat:1 }}g</div>
+                <div class="label">Carbs</div>
+            </div>
+            <div class="nutrition-item">
+                <div class="value">{{ recipe.total_nutrition.fats|floatformat:1 }}g</div>
+                <div class="label">Fats</div>
+            </div>
+        </div>
+    </a>
+    {% empty %}
+    <div class="glass-card empty-state" style="grid-column: 1 / -1;">
+        <i class="fas fa-search"></i>
+        <h3>No recipes found</h3>
+        <p>Try adjusting your filters or search query</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function applyFilters() {
+        const params = new URLSearchParams();
+        
+        const search = document.getElementById('searchInput').value;
+        const mealType = document.getElementById('mealTypeFilter').value;
+        const difficulty = document.getElementById('difficultyFilter').value;
+        const category = document.getElementById('categoryFilter').value;
+        const proteinOnly = document.getElementById('proteinFilter').checked;
+        
+        if (search) params.set('q', search);
+        if (mealType) params.set('meal_type', mealType);
+        if (difficulty) params.set('difficulty', difficulty);
+        if (category) params.set('category', category);
+        if (proteinOnly) params.set('protein_source', 'true');
+        
+        window.location.href = '{% url "recipe_list" %}?' + params.toString();
+    }
+
+    // Live search with debounce
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            applyFilters();
+        }, 500);
+    });
+</script>
+{% endblock %}

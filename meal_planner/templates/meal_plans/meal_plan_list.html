@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+
+{% block title %}Meal Plans - FitMeal Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .plans-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+    }
+
+    .plans-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 25px;
+    }
+
+    .plan-card {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .plan-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
+        background: linear-gradient(to bottom, var(--primary), var(--secondary));
+    }
+
+    .plan-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .plan-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--light);
+        margin-bottom: 5px;
+    }
+
+    .plan-dates {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .plan-duration {
+        padding: 6px 12px;
+        background: rgba(99, 102, 241, 0.2);
+        border-radius: 20px;
+        font-size: 0.8rem;
+        color: #a5b4fc;
+    }
+
+    .plan-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin: 20px 0;
+        padding: 20px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .plan-stat {
+        text-align: center;
+    }
+
+    .plan-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--accent);
+    }
+
+    .plan-stat-label {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+    }
+
+    .plan-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .plan-actions .btn {
+        flex: 1;
+        justify-content: center;
+        padding: 10px;
+        font-size: 0.85rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 40px;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: rgba(255, 255, 255, 0.2);
+        margin-bottom: 20px;
+    }
+
+    /* Create Plan Modal */
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Your Meal Plans</h1>
+    <p>Organize your weekly nutrition with personalized meal plans</p>
+</div>
+
+<div class="plans-header">
+    <div></div>
+    <button><a href="{% url 'create_meal_plan' %}" class="btn btn-primary">
+    <i class="fas fa-plus"></i>
+    Create New Plan
+    </a></button>
+    
+</div>
+
+<div class="plans-grid">
+    {% for plan in meal_plans %}
+    <div class="glass-card plan-card">
+        <div class="plan-header">
+            <div>
+                <div class="plan-title">{{ plan.name }}</div>
+                <div class="plan-dates">
+                    <i class="fas fa-calendar"></i>
+                    {{ plan.start_date|date:"M d" }} - {{ plan.end_date|date:"M d, Y" }}
+                </div>
+            </div>
+            <span class="plan-duration">{{ plan.total_days }} days</span>
+        </div>
+        
+        <div class="plan-stats">
+            <div class="plan-stat">
+                <div class="plan-stat-value">{{ plan.dailymeal_set.count }}</div>
+                <div class="plan-stat-label">Meals</div>
+            </div>
+            <div class="plan-stat">
+                <div class="plan-stat-value">{{ plan.total_nutrition.calories|floatformat:0 }}</div>
+                <div class="plan-stat-label">Total Cal</div>
+            </div>
+            <div class="plan-stat">
+                <div class="plan-stat-value">{{ plan.total_nutrition.protein|floatformat:0 }}g</div>
+                <div class="plan-stat-label">Protein</div>
+            </div>
+        </div>
+        
+        <div class="plan-actions">
+            <a href="{% url 'meal_plan_detail' plan.id %}" class="btn btn-primary">
+                <i class="fas fa-eye"></i>
+                View
+            </a>
+            <a href="{% url 'generate_shopping_list' plan.id %}" class="btn btn-secondary">
+                <i class="fas fa-shopping-cart"></i>
+                Shop
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="glass-card empty-state" style="grid-column: 1 / -1;">
+        <i class="fas fa-calendar-plus"></i>
+        <h3>No meal plans yet</h3>
+        <p>Create your first meal plan to start organizing your nutrition</p>
+        <button><a href="{% url 'create_meal_plan' %}" class="btn btn-primary">
+    <i class="fas fa-plus"></i>
+    Create New Plan
+    </a></button>
+    </div>
+    {% endfor %}
+</div>
+
+
+<div class="modal-overlay" id="createModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Create New Meal Plan</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <form id="createPlanForm">
+            <div class="form-group">
+                <label>Plan Name</label>
+                <input type="text" class="form-control" id="planName" placeholder="e.g., Week 1 Bulking Plan" required>
+            </div>
+            <div class="form-group">
+                <label>Description (optional)</label>
+                <textarea class="form-control" id="planDescription" rows="2" placeholder="Brief description of your plan"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" class="form-control" id="startDate" required>
+                </div>
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" class="form-control" id="endDate" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="fas fa-check"></i>
+                Create Plan
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    
+    const today = new Date();
+    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+    document.getElementById('startDate').value = today.toISOString().split('T')[0];
+    document.getElementById('endDate').value = nextWeek.toISOString().split('T')[0];
+
+    function openCreateModal() {
+        document.getElementById('createModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('createModal').classList.remove('active');
+    }
+
+    document.getElementById('createPlanForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const data = {
+            name: document.getElementById('planName').value,
+            description: document.getElementById('planDescription').value,
+            start_date: document.getElementById('startDate').value,
+            end_date: document.getElementById('endDate').value,
+        };
+        
+        try {
+            const response = await fetchJSON('/meal-plans/create/', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            
+            if (response.success) {
+                window.location.href = response.redirect_url;
+            }
+        } catch (error) {
+            alert('Error creating meal plan. Please try again.');
+        }
+    });
+
+    
+    document.getElementById('createModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+</script>
+{% endblock %}
