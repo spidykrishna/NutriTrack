@@ -27,6 +27,7 @@ def shopping_list_detail(request, pk=None):
             cat_name = str(item.ingredient.category)
         else:
             cat_name = 'Other'
+
             
         if cat_name not in items_by_category:
             items_by_category[cat_name] = []
@@ -62,22 +63,28 @@ def add_custom_item(request, list_id):
         data = json.loads(request.body)
         name = data.get('name')
         
-        if not name:
-            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+        if not name or not name.strip():
+            return JsonResponse({'success': False, 'error': 'Item ka naam likh pehle!'}, status=400)
+
+        
+        try:
+            amount_val = float(data.get('amount', 1))
+        except (TypeError, ValueError):
+            amount_val = 1.0
 
         
         ingredient, created = Ingredient.objects.get_or_create(
             name=name.strip(),
             defaults={
-                'category': 'Other',
                 'calories': 0, 'protein': 0, 'carbs': 0, 'fats': 0,
             }
         )
         
+        
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
             ingredient=ingredient,
-            amount=data.get('amount', 1),
+            amount=amount_val,
             unit=data.get('unit', 'piece'),
             purchased=False
         )
@@ -133,3 +140,10 @@ def shopping_lists(request):
     """List all shopping lists"""
     lists = ShoppingList.objects.all().order_by('-created_at')
     return render(request, 'shopping_list/shopping_lists.html', {'shopping_lists': lists})
+
+@csrf_exempt
+@require_POST
+def clear_all_items(request, list_id):
+    shopping_list = get_object_or_404(ShoppingList, id=list_id)
+    shopping_list.items.all().delete()
+    return JsonResponse({"success": True})

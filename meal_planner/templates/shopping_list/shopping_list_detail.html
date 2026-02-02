@@ -230,7 +230,7 @@
             <option value="l">liters</option>
             <option value="cup">cups</option>
         </select>
-        <button class="btn btn-primary" onclick="addCustomItem()">
+        <button type="button" class="btn btn-primary" onclick="addCustomItem(event)">
             <i class="fas fa-plus"></i> Add
         </button>
     </div>
@@ -255,7 +255,7 @@
                     <div class="item-amount">{{ item.amount }} {{ item.unit }}</div>
                 </div>
                 <div class="item-actions">
-                    <button class="item-btn" onclick="editAmount({{ item.id }})">
+                    <button class="item-btn" onclick="editAmount({{ item.id }}, {{ item.amount }}, '{{ item.unit|escapejs }}')">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="item-btn danger" onclick="removeItem({{ item.id }})">
@@ -280,8 +280,8 @@
         <i class="fas fa-broom"></i> Clear Purchased
     </button>
     <button class="btn btn-danger" onclick="clearAll()">
-        <i class="fas fa-trash-alt"></i> Clear All
-    </button>
+    <i class="fas fa-trash-alt"></i> Clear All
+</button>
 </div>
 {% endblock %}
 
@@ -315,30 +315,33 @@
         return response.json();
     }
 
-   async function addCustomItem() {
-    const name = document.getElementById('newItemName').value;
-    const amount = document.getElementById('newItemAmount').value;
-    const unit = document.getElementById('newItemUnit').value;
-
-    if (!name) {
-        alert('Please enter an item name');
-        return;
+   // shopping_list_detail.html ke <script> tag ke andar wala function change kar
+    function addCustomItem(event) {
+        if (event) event.preventDefault();
+        const name = document.getElementById('newItemName').value.trim();
+        const amount = document.getElementById('newItemAmount').value || 1;
+        const unit = document.getElementById('newItemUnit').value;
+        if (!name) {
+            alert("Item ka naam daalo");
+            return;
+        }
+        fetch("{% url 'add_custom_item' shopping_list.id %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({ name, amount, unit })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.error);
+            }
+        });
     }
-
-    const response = await fetch(`/shopping-list/{{ shopping_list.id }}/add-item/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken') 
-        },
-        body: JSON.stringify({ name, amount: parseFloat(amount), unit })
-    });
-
-    const result = await response.json();
-    if (result.success) {
-        window.location.reload(); 
-    }
-}
 
     async function toggleItem(itemId) {
         try {
@@ -363,19 +366,42 @@
         }
     }
 
-    async function editAmount(itemId) {
-        const newAmount = prompt('Enter new amount:');
+    async function editAmount(itemId, currentAmount, currentUnit) {
+        const newAmount = prompt('Enter new amount:', currentAmount);
         if (!newAmount) return;
         try {
             const response = await fetchJSON(`/shopping-items/${itemId}/update/`, {
                 method: 'POST',
-                body: JSON.stringify({ amount: parseFloat(newAmount) })
+                body: JSON.stringify({ amount: parseFloat(newAmount), unit: currentUnit })
             });
             if (response.success) window.location.reload();
         } catch (error) {
             alert('Error updating amount.');
         }
     }
+    async function clearAll() {
+        if (!confirm("Are you sure? Saare items delete ho jaayenge!")) return;
+        try {
+            const response = await fetch(
+                "{% url 'clear_all_items' shopping_list.id %}",
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCookie("csrftoken"),
+                    },
+                }
+            );
+            const data = await response.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert("Clear all failed");
+            }
+        } catch (err) {
+            alert("Server error");
+        }
+    }
+
 
     async function clearPurchased() {
         if (!confirm('Remove all purchased items?')) return;
