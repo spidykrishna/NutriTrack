@@ -322,7 +322,7 @@
         const amount = document.getElementById('newItemAmount').value || 1;
         const unit = document.getElementById('newItemUnit').value;
         if (!name) {
-            alert("Item ka naam daalo");
+            alert("Insert item name");
             return;
         }
         fetch("{% url 'add_custom_item' shopping_list.id %}", {
